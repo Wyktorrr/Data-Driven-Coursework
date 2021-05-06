@@ -7,6 +7,9 @@ from matplotlib import pyplot as plt
 from utilities import load_points_from_file as lpf
 from utilities import view_data_segments as vds
 
+def least_squares(X, Y):
+    return np.linalg.inv(X.T.dot(X)).dot(X.T).dot(Y)
+
 command_arguments_list = sys.argv
 xs, ys = lpf(str(command_arguments_list[1]))
 
@@ -15,11 +18,8 @@ ax.set_xlabel("$x_\lambda$")
 ax.set_ylabel("$y_\lambda$")
 ax.scatter(xs, ys)
 
-"""
 number_of_input_points = len(xs) 
 number_of_segments_to_be_ploted = number_of_input_points // 20
-"""
-n = len(xs)
 
 def find_function(linear_error, polynomial_error, unknown_error):
     if linear_error < polynomial_error:
@@ -40,6 +40,9 @@ def plot_linear(X, Y):
     x_e = np.column_stack((ones, X))
     v = np.linalg.inv(x_e.T.dot(x_e)).dot(x_e.T).dot(Y)
     return v[:]
+
+#a, b = plot_linear(xs, ys)
+#print(a, b)                    
 
 def plot_polynomial(X, Y):
     
@@ -67,12 +70,19 @@ def plot_polynomial(X, Y):
 
     return coef
 
+"""
 def unknown_function(X, Y):
     y_coordinates = np.array(Y)
     extended_matrice = np.column_stack(((np.ones(X.shape)), X, X ** 2, X ** 3))
     x_coordinates = np.column_stack(((np.ones(X.shape)), X, X ** 2, X ** 3))
     estimated_parameters = np.linalg.inv(x_coordinates.T.dot(extended_matrice)).dot(x_coordinates.T).dot(y_coordinates)
-    return estimated_parameters    
+    return estimated_parameters 
+"""
+def unknown_function(X, Y):
+     y_coordinates = np.array(Y)
+     extended_matrix = np.column_stack((np.ones(X.shape), X, np.sin(X)))
+     estimated_parameters = np.linalg.inv(extended_matrix.T.dot(extended_matrix)).dot(extended_matrix.T).dot(y_coordinates)
+     return estimated_parameters  
 
 def test_data(X, Y, j):
     xs_test = X[j:j+5]
@@ -98,7 +108,53 @@ def calculate_line(X, Y, function_type):
     else:
         parameters = unknown_function(X, Y)
         x = X
-        estimated_output = parameters[0] + parameters[1]*x + parameters[2]*x**2 + parameters[3]*x**3
+        estimated_output = parameters[0] + parameters[1]*x + parameters[2]*np.sin(x) 
 
     return x, estimated_output 
 
+def plot_line(x, estimated_output):
+    plt.plot(x, estimated_output, c = "r")           
+
+reconstruction_error = 0
+
+#Split in chanks of 20 points
+for i in range (0, number_of_input_points, 20):
+    chunk_xs = xs[i:i+20]
+    chunk_ys = ys[i:i+20]
+
+    error_linear = 0
+    error_polynomial = 0
+    error_unknown = 0
+
+    for j in range(0, 20, 5):
+        xs_train, xs_test, ys_train, ys_test = test_data(chunk_xs, chunk_ys, j)
+
+        x, y_hat = calculate_line(xs_train, ys_train, "linear")
+        error_linear += np.sum((ys_test - y_hat[j:j + 5]) ** 2)
+        error_linear = error_linear / ((j + 5) / 5)
+
+        x, y_hat = calculate_line(xs_train, ys_train, "polynomial")
+        error_polynomial += np.sum((ys_test - y_hat[j:j + 5]) ** 2)
+        error_polynomial = error_polynomial / ((j + 5) / 5)
+
+        x, y_hat = calculate_line(xs_train, ys_train, "unknown")
+        error_unknown += np.sum((ys_test - y_hat[j:j + 5]) ** 2)
+        error_unknown = error_unknown / ((j + 5) / 5)
+
+    type = find_function(error_linear, error_polynomial, error_unknown)    
+
+    x, y_hat = calculate_line(chunk_xs, chunk_ys, type)
+    reconstruction_error += np.sum((chunk_ys - y_hat) ** 2)
+
+    if sys.argv.__contains__("--plot"):
+        plot_line(x, y_hat)
+
+
+reconstruction_error = reconstruction_error / (len(ys) // 20)
+print(reconstruction_error)
+
+if sys.argv.__contains__("--plot"):
+    colour = np.concatenate([[i] * 20 for i in range(number_of_segments_to_be_ploted)])
+    plt.set_cmap('Dark2')
+    plt.scatter(xs, ys, c = colour)
+    plt.show()
