@@ -91,7 +91,7 @@ def calculate_line(X, Y, function_type):
     if function_type == "polynomial":
             coefficients = plot_polynomial(X, Y)
             x = X
-            estimated_output = coefficients[2]*x*2 + coefficients[1]*x + coefficients[0]
+            estimated_output = coefficients[2]*x**2 + coefficients[1]*x + coefficients[0]
 
     elif function_type == "linear":
         slope, offset = plot_linear(X, Y)

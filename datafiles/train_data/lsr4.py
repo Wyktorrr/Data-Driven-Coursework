@@ -10,6 +10,9 @@ from utilities import view_data_segments as vds
 def least_squares(X, Y):
     return np.linalg.inv(X.T.dot(X)).dot(X.T).dot(Y)
 
+def square_error(y, y_hat):
+    return (y - y_hat) ** 2    
+
 command_arguments_list = sys.argv
 xs, ys = lpf(str(command_arguments_list[1]))
 
@@ -41,10 +44,12 @@ def plot_linear(X, Y):
     v = np.linalg.inv(x_e.T.dot(x_e)).dot(x_e.T).dot(Y)
     return v[:]                  
 
-def plot_polynomial(X, Y):
-    extended_matrix = np.column_stack((np.ones(X.shape), X, X**2, X**3))
-    estimated_parameters = np.linalg.inv(extended_matrix.T.dot(extended_matrix)).dot(extended_matrix.T).dot(Y)
-    return estimated_parameters 
+def plot_polynomial(X, Y, degree):
+    extended_matrix = np.column_stack((np.ones(X.shape), X, X**2))
+    for i in range(3, degree):
+        extended_matrix = np.column_stack((X**i))
+        estimated_parameters = np.linalg.inv(extended_matrix.T.dot(extended_matrix)).dot(extended_matrix.T).dot(Y)
+        return estimated_parameters 
 
 def unknown_function(X, Y):
      extended_matrix = np.column_stack((np.ones(X.shape), X, np.sin(X)))
@@ -61,11 +66,18 @@ def test_data(X, Y, j):
 
     return xs_train, xs_test, ys_train, ys_test
 
-def calculate_line(X, Y, function_type):
+def compute_polynomial(X, Y, degree):
+    coefficients = []
+    coefficients = plot_polynomial(X, Y, degree) 
+    x = X
+    for i in range(2, degree):
+        coefficients = np.sum(coefficients[i]*x**i)  
+    return coefficients    
+
+def calculate_line(X, Y, function_type, degree):
     if function_type == "polynomial":
-            coefficients = plot_polynomial(X, Y)
             x = X
-            estimated_output = coefficients[2]*x*2 + coefficients[1]*x + coefficients[0]
+            estimated_output = compute_polynomial(X, Y, degree)
 
     elif function_type == "linear":
         slope, offset = plot_linear(X, Y)
@@ -84,6 +96,8 @@ def plot_line(x, estimated_output):
 
 reconstruction_error = 0
 
+#def find_degree()
+
 #Split in chanks of 20 points
 for i in range (0, number_of_input_points, 20):
     chunk_xs = xs[i:i+20]
@@ -93,24 +107,47 @@ for i in range (0, number_of_input_points, 20):
     error_polynomial = 0
     error_unknown = 0
 
+    default_degree = 2
+
     for j in range(0, 20, 5):
         xs_train, xs_test, ys_train, ys_test = test_data(chunk_xs, chunk_ys, j)
 
-        x, y_hat = calculate_line(xs_train, ys_train, "linear")
+        x, y_hat = calculate_line(xs_train, ys_train, "linear", default_degree)
         error_linear += np.sum((ys_test - y_hat[j:j + 5]) ** 2)
         error_linear = error_linear / ((j + 5) / 5)
 
-        x, y_hat = calculate_line(xs_train, ys_train, "polynomial")
+        
+        
+        #Calculez squared error pt fiecare grad de polynom
+        
+        initial_error_polynomial = 9999
+        x, y_hat = calculate_line(xs_train, ys_train, "polynomial", default_degree)
         error_polynomial += np.sum((ys_test - y_hat[j:j + 5]) ** 2)
+        while(error_polynomial < initial_error_polynomial):
+              initial_error_polynomial = error_polynomial
+              default_degree += 1
+              error_polynomial += np.sum((ys_test - y_hat[j:j + 5]) ** 2)
+              x, y_hat = calculate_line(xs_train, ys_train, "polynomial", default_degree)
+        #Based on error_polynomial decide the degree of the poly
         error_polynomial = error_polynomial / ((j + 5) / 5)
+        #error_polynomial += np.sum((ys_test - y_hat[j:j + 5]) ** 2)
+        
+        
 
-        x, y_hat = calculate_line(xs_train, ys_train, "unknown")
+        """
+        x, y_hat = calculate_line(xs_train, ys_train, "polynomial")
+        error_polynomial = np.append(error_polynomial, np.sum((ys_test - y_hat[j:j + 5]) ** 2))
+        """
+       # error_polynomial += np.sum((ys_test - y_hat[j:j + 5]) ** 2)
+       # error_polynomial = error_polynomial / ((j + 5) / 5)
+
+        x, y_hat = calculate_line(xs_train, ys_train, "unknown", default_degree)
         error_unknown += np.sum((ys_test - y_hat[j:j + 5]) ** 2)
         error_unknown = error_unknown / ((j + 5) / 5)
 
     type = find_function(error_linear, error_polynomial, error_unknown)    
 
-    x, y_hat = calculate_line(chunk_xs, chunk_ys, type)
+    x, y_hat = calculate_line(chunk_xs, chunk_ys, type, default_degree)
     reconstruction_error += np.sum((chunk_ys - y_hat) ** 2)
 
     if sys.argv.__contains__("--plot"):
