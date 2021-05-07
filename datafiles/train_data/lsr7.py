@@ -82,8 +82,9 @@ def compute_polynomial(X, Y, degree):
     #print(result)
     return result    
 
-def calculate_line(X, Y, function_type, degree):
+def calculate_line(X, Y, degree):
     estimated_output = []
+    function_type = "pula mea"
     if function_type == "polynomial":
             x = X
             estimated_output = compute_polynomial(X, Y, degree)
@@ -121,26 +122,26 @@ for i in range (0, number_of_input_points, 20):
 
   #for de la 0 la 100 
       #shuffle chunks
-      #mean sqare error in the end
+      #
     for j in range(0, 20, 5):
         xs_train, xs_test, ys_train, ys_test = test_data(chunk_xs, chunk_ys, j)
-        x, y_hat = calculate_line(xs_train, ys_train, "linear", default_degree)
+        x, y_hat = calculate_line(xs_train, ys_train, default_degree)
         error_linear += np.sum((ys_test - y_hat[j:j + 5]) ** 2)
-        #error_linear = error_linear / ((j + 5) / 5)
+       # error_linear = error_linear / ((j + 5) / 5)
 
         
         
         #Calculez squared error pt fiecare grad de polynom
         
         initial_error_polynomial = 9999
-        x, y_hat = calculate_line(xs_train, ys_train, "polynomial", default_degree)
+        x, y_hat = calculate_line(xs_train, ys_train, default_degree)
         #print(x, y_hat)
         error_polynomial += np.sum((ys_test - y_hat[j:j + 5]) ** 2)
         while(error_polynomial < initial_error_polynomial):
               initial_error_polynomial = error_polynomial
               default_degree += 1
               error_polynomial += np.sum((ys_test - y_hat[j:j + 5]) ** 2)
-              x, y_hat = calculate_line(xs_train, ys_train, "polynomial", default_degree)
+              x, y_hat = calculate_line(xs_train, ys_train, default_degree)
         #print(default_degree)      
         #Based on error_polynomial decide the degree of the poly
         #error_polynomial = error_polynomial / ((j + 5) / 5)
@@ -155,23 +156,25 @@ for i in range (0, number_of_input_points, 20):
        # error_polynomial += np.sum((ys_test - y_hat[j:j + 5]) ** 2)
        # error_polynomial = error_polynomial / ((j + 5) / 5)
 
-        x, y_hat = calculate_line(xs_train, ys_train, "unknown", default_degree)
+        x, y_hat = calculate_line(xs_train, ys_train, default_degree)
         error_unknown += np.sum((ys_test - y_hat[j:j + 5]) ** 2)
         #error_unknown = error_unknown / ((j + 5) / 5)    
 
     function_type = find_function(error_linear, error_polynomial, error_unknown) 
 
+    """
     if (function_type == "polynomial"):
-        print(default_degree)   
+        print(default_degree) 
+    """      
 
-    x, y_hat = calculate_line(chunk_xs, chunk_ys, function_type, default_degree)
+    x, y_hat = calculate_line(chunk_xs, chunk_ys, default_degree)
     reconstruction_error += np.sum((chunk_ys - y_hat) ** 2)
 
     if sys.argv.__contains__("--plot"):
         plot_line(x, y_hat)
 
 
-reconstruction_error = reconstruction_error / (len(xs) // 20)
+reconstruction_error = reconstruction_error / (len(ys) // 20)
 print(reconstruction_error)
 
 if sys.argv.__contains__("--plot"):
