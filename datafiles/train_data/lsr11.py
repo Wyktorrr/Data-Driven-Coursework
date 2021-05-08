@@ -118,7 +118,7 @@ reconstruction_error = 0
 
 def shuffle(x, y):
     sh = np.random.permutation(len(x))
-    return x[sh], y[sh]    
+    return x[sh], y[sh]       
 
 #Split in chanks of 20 points
 for i in range (0, number_of_input_points, 20):
@@ -135,7 +135,7 @@ for i in range (0, number_of_input_points, 20):
 
     default_degree = 2
 
-    list_degree = np.zeros(7)
+    list_degree = np.zeros(7) 
 
     for i in range(0, 100):  
         for j in range(0, 20, 5):
@@ -179,6 +179,7 @@ for i in range (0, number_of_input_points, 20):
     print("error cosinus: ", error_unknown_cos)
     print("error linear: ", error_linear)
     print("exponential error: ", error_unknown_exp)
+    print("ERROR POLYNOMIAL: ", list_degree[index])
     function_type = find_function(error_linear, list_degree[index], error_unknown_sin, error_unknown_cos, error_unknown_exp) 
 
     if (function_type == "polynomial"):
@@ -191,7 +192,7 @@ for i in range (0, number_of_input_points, 20):
         plot_line(chunk_xs, y_hat)
 
 
-reconstruction_error = reconstruction_error / number_of_segments_to_be_ploted
+#reconstruction_error = reconstruction_error / number_of_segments_to_be_ploted
 print(reconstruction_error)
 
 if sys.argv.__contains__("--plot"):
