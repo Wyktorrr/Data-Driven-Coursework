@@ -38,56 +38,52 @@ def plot_linear(X, Y):
     ones = np.ones(X.shape)
     x_e = np.column_stack((ones, X))
     v = np.linalg.inv(x_e.T.dot(x_e)).dot(x_e.T).dot(Y)
-    return v[:]  
-
+    return v[:]                  
 
 def plot_polynomial(X, Y, degree):
     estimated_parameters = []
     extended_matrix = np.column_stack((np.ones(X.shape), X))
-    #Y = np.reshape(Y, (1, len(Y)))
+    Y = np.reshape(Y, (1, len(Y)))
     for i in range(2, degree + 1):
-        extended_matrix = np.column_stack((extended_matrix, X**i))
+        extended_matrix = np.column_stack((X**i))
         estimated_parameters = np.linalg.inv(extended_matrix.T.dot(extended_matrix)).dot(extended_matrix.T).dot(Y)
     return estimated_parameters
 
 def unknown_function(X, Y):
-     extended_matrix = np.column_stack((np.ones(X.shape),np.sin(X)))
+     extended_matrix = np.column_stack((np.ones(X.shape), X, np.sin(X)))
      estimated_parameters = np.linalg.inv(extended_matrix.T.dot(extended_matrix)).dot(extended_matrix.T).dot(Y)
      return estimated_parameters  
 
 def test_data(X, Y, j):
-    
     xs_test = X[j:j+5]
     ys_test = Y[j:j+5]
     xs_train = X[j+5:20]
     ys_train = Y[j+5:20]
-    xs_train = np.append(X[:j], xs_train)
-    ys_train = np.append(Y[:j], ys_train)
+    xs_train = np.append(X[:j], xs_test)
+    ys_train = np.append(Y[:j], ys_test)
 
     return xs_train, xs_test, ys_train, ys_test
 
-
-def compute_polynomial(X, X_tets, Y, degree):
+def compute_polynomial(X, Y, degree):
     coefficients = []
     coefficients = plot_polynomial(X, Y, degree) 
-    result = [0 for i in range(len(X_tets))]
+    result = [0 for i in range(len(coefficients))]
     for i in range(degree + 1):
-        result += coefficients[i]*X_tets**i  #Y_hat -> estimated_output
+        result += coefficients[i]*X**i  #Y_hat -> estimated_output
     return result    
 
-def calculate_line(X, X_tets, Y, function_type, degree):
+def calculate_line(X, Y, function_type, degree):
     estimated_output = []
     if function_type == "polynomial":
-            estimated_output = compute_polynomial(X, X_tets, Y, degree)
+            estimated_output = compute_polynomial(X, Y, degree)
 
     elif function_type == "linear":
-        offset, slope = plot_linear(X, Y)
-        estimated_output = slope * X_tets + offset
+        slope, offset = plot_linear(X, Y)
+        estimated_output = slope * X + offset
 
     else:
         parameters = unknown_function(X, Y)
-        estimated_output = parameters[0] + parameters[1]*np.sin(X_tets)
-        #estimated_output = parameters[0] + parameters[1]*X_tets + parameters[2]*np.sin(X_tets)
+        estimated_output = parameters[0] + parameters[1]*X + parameters[2]*np.sin(X)
 
     return estimated_output 
 
@@ -97,18 +93,47 @@ def plot_line(x, estimated_output):
 
 reconstruction_error = 0
 
-def shuffle(x, y):
-    
-    sh = np.random.permutation(len(x))
+def poly():
+    for i in range (0, number_of_input_points, 20):
+        error_polynomial = 0
 
-    return x[sh], y[sh]    
+        chunk_xs = xs[i:i+20]
+        chunk_ys = ys[i:i+20]
+
+        default_degree = 2
+
+        for j in range(0, 20, 5):
+            xs_train, xs_test, ys_train, ys_test = test_data(chunk_xs, chunk_ys, j)
+            #Calculez squared error pt fiecare grad de polynom
+            initial_error_polynomial = 9999
+
+            y_hat = calculate_line(xs_train, ys_train, "polynomial", default_degree)
+            error_polynomial += square_error(ys_test, y_hat[j:j + 5])
+
+            while(error_polynomial < initial_error_polynomial):
+                initial_error_polynomial = error_polynomial
+                default_degree += 1
+                error_polynomial += square_error(ys_test, y_hat[j:j + 5])
+                y_hat = calculate_line(xs_train, ys_train, "polynomial", default_degree)
+
+            print(default_degree)   
+
+            y_hat = calculate_line(chunk_xs, chunk_ys, "polynomial", default_degree)
+            reconstruction_error += square_error(chunk_ys, y_hat)
+
+            if sys.argv.__contains__("--plot"):
+                plot_line(chunk_xs, y_hat)  
+   
+    return error_polynomial             
+
+
+
+
 
 #Split in chanks of 20 points
 for i in range (0, number_of_input_points, 20):
     chunk_xs = xs[i:i+20]
     chunk_ys = ys[i:i+20]
-
-    shuffle_chunk_xs, shuffle_chunk_ys = shuffle(chunk_xs, chunk_ys) 
 
     error_linear = 0
     error_polynomial = 0
@@ -116,57 +141,25 @@ for i in range (0, number_of_input_points, 20):
 
     default_degree = 2
 
-    list_degree = np.zeros(7)
-
   #for de la 0 la 100 
       #shuffle chunks
       #mean sqare error in the end
     for j in range(0, 20, 5):
-        xs_train, xs_test, ys_train, ys_test = test_data(shuffle_chunk_xs, shuffle_chunk_ys, j)
+
+        #unde ar tb folosit si xs_test????!!!
         
-        y_hat = calculate_line(xs_train, xs_test, ys_train, "linear", default_degree)
-        error_linear += square_error(ys_test, y_hat)
+        xs_train, xs_test, ys_train, ys_test = test_data(chunk_xs, chunk_ys, j)
+
+        y_hat = calculate_line(xs_train, ys_train, "linear", default_degree)
+        error_linear += square_error(ys_test, y_hat[j:j + 5])
         
-        #Calculez squared error pt fiecare grad de polynom
-        #initial_error_polynomial = 99999
+        y_hat = calculate_line(xs_train, ys_train, "unknown", default_degree)
+        error_unknown += square_error(ys_test, y_hat[j:j + 5])
 
-        y_hat = calculate_line(xs_train, xs_test, ys_train, "polynomial", default_degree)
-        error_polynomial = square_error(ys_test, y_hat)
 
-        
-        for i in range(2, 7):
-            y_hat = calculate_line(xs_train, xs_test, ys_train, "polynomial", i)
-            error_polynomial = square_error(ys_test, y_hat)
-            list_degree[i] += error_polynomial
+    function_type = find_function(error_linear, error_polynomial, error_unknown)   
 
-        """
-        while(error_polynomial < initial_error_polynomial):
-              initial_error_polynomial = error_polynomial
-              default_degree += 1
-              y_hat = calculate_line(xs_train, xs_test, ys_train, "polynomial", default_degree)
-              error_polynomial = square_error(ys_test, y_hat)
-        """      
-
-        y_hat = calculate_line(xs_train, xs_test, ys_train, "unknown", default_degree)
-        error_unknown += square_error(ys_test, y_hat)
-    
-
-    index = 2
-    for i in range(2, 7):
-        if(list_degree[i] < list_degree[index]):
-            index = i
-
-    default_degree = index        
-
-    print("list degree: ", list_degree)
-    print("error unknown: ", error_unknown)
-    print("error linear: ", error_linear)
-    function_type = find_function(error_linear, list_degree[index], error_unknown) 
-
-    if (function_type == "polynomial"):
-        print("Degree of the polynomial is: ", default_degree)   
-
-    y_hat = calculate_line(chunk_xs, chunk_xs, chunk_ys, function_type, default_degree)
+    y_hat = calculate_line(chunk_xs, chunk_ys, function_type, default_degree)
     reconstruction_error += square_error(chunk_ys, y_hat)
 
     if sys.argv.__contains__("--plot"):
