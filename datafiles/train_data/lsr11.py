@@ -144,8 +144,6 @@ for i in range (0, number_of_input_points, 20):
             y_hat = calculate_line(xs_train, xs_test, ys_train, "linear", default_degree)
             error_linear += square_error(ys_test, y_hat)
         
-            y_hat = calculate_line(xs_train, xs_test, ys_train, "polynomial", default_degree)
-            error_polynomial = square_error(ys_test, y_hat)
             for i in range(2, 7):
                 y_hat = calculate_line(xs_train, xs_test, ys_train, "polynomial", i)
                 error_polynomial = square_error(ys_test, y_hat)
@@ -165,7 +163,7 @@ for i in range (0, number_of_input_points, 20):
     error_unknown_cos = error_unknown_cos.mean()
     error_unknown_exp = error_unknown_exp.mean()
     for i in range(2, 7):
-        list_degree[i].mean()
+        list_degree[i] = list_degree[i].mean()
 
     index = 2
     for i in range(2, 7):
@@ -173,17 +171,27 @@ for i in range (0, number_of_input_points, 20):
             index = i
 
     default_degree = index        
-
-    #print("list degree: ", list_degree)
-    print("error sinus: ", error_unknown_sin)
-    print("error cosinus: ", error_unknown_cos)
-    print("error linear: ", error_linear)
-    print("exponential error: ", error_unknown_exp)
+    
+    print("LINEAR ERROR IS: ", error_linear)
+    print()
     print("ERROR POLYNOMIAL: ", list_degree[index])
+    print()
+    print("ERROR SINUS: ", error_unknown_sin)
+    print()
+    print("ERROR COSINUS: ", error_unknown_cos)
+    print()
+    print("ERROR EXPONENTIAL:", error_unknown_exp)
+    print()
+    print("LIST ERRORS FOR EACH DEGREE FOR POLYNOMIAL: ", list_degree)
+    print()
+
+
+
     function_type = find_function(error_linear, list_degree[index], error_unknown_sin, error_unknown_cos, error_unknown_exp) 
 
     if (function_type == "polynomial"):
-        print("Degree of the polynomial is: ", default_degree)   
+        print("Degree of the polynomial is: ", default_degree)  
+        print() 
 
     y_hat = calculate_line(chunk_xs, chunk_xs, chunk_ys, function_type, default_degree)
     reconstruction_error += square_error(chunk_ys, y_hat)
@@ -191,9 +199,7 @@ for i in range (0, number_of_input_points, 20):
     if sys.argv.__contains__("--plot"):
         plot_line(chunk_xs, y_hat)
 
-
-#reconstruction_error = reconstruction_error / number_of_segments_to_be_ploted
-print(reconstruction_error)
+print("Total reconstruction error is: ", reconstruction_error)
 
 if sys.argv.__contains__("--plot"):
     colour = np.concatenate([[i] * 20 for i in range(number_of_segments_to_be_ploted)])
