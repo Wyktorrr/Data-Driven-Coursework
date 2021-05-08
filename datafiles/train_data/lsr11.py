@@ -24,14 +24,16 @@ ax.scatter(xs, ys)
 number_of_input_points = len(xs) 
 number_of_segments_to_be_ploted = number_of_input_points // 20
 
-def find_function(linear_error, polynomial_error, unknown_error):
-    list_errors = [linear_error, polynomial_error, unknown_error]
+def find_function(linear_error, polynomial_error, unknown_error_sin, unknown_error_cos):
+    list_errors = [linear_error, polynomial_error, unknown_error_sin, unknown_error_cos]
     min_error = min(list_errors)
     if(min_error == linear_error):
         return "linear"
     elif(min_error == polynomial_error):
         return "polynomial"
-    return "unknown"       
+    elif(min_error == unknown_error_sin):    
+           return "sinus"   
+    return "cosinus"           
        
 def plot_linear(X, Y):
     #return the gradient and the vertical offset of a linear function
@@ -49,10 +51,15 @@ def plot_polynomial(X, Y, degree):
         estimated_parameters = np.linalg.inv(extended_matrix.T.dot(extended_matrix)).dot(extended_matrix.T).dot(Y)
     return estimated_parameters
 
-def unknown_function(X, Y):
+def unknown_function_sin(X, Y):
      extended_matrix = np.column_stack((np.ones(X.shape),np.sin(X)))
      estimated_parameters = np.linalg.inv(extended_matrix.T.dot(extended_matrix)).dot(extended_matrix.T).dot(Y)
-     return estimated_parameters  
+     return estimated_parameters
+
+def unknown_function_cos(X, Y):
+     extended_matrix = np.column_stack((np.ones(X.shape),np.cos(X)))
+     estimated_parameters = np.linalg.inv(extended_matrix.T.dot(extended_matrix)).dot(extended_matrix.T).dot(Y)
+     return estimated_parameters    
 
 def test_data(X, Y, j):
     xs_test = X[j:j+5]
@@ -82,9 +89,13 @@ def calculate_line(X, X_test, Y, function_type, degree):
         offset, slope = plot_linear(X, Y)
         estimated_output = slope * X_test + offset
 
-    else:
-        parameters = unknown_function(X, Y)
+    elif function_type == "sinus":
+        parameters = unknown_function_sin(X, Y)
         estimated_output = parameters[0] + parameters[1]*np.sin(X_test)
+
+    else:
+         parameters = unknown_function_cos(X, Y)
+         estimated_output = parameters[0] + parameters[1]*np.sin(X_test)    
 
     return estimated_output 
 
@@ -107,7 +118,8 @@ for i in range (0, number_of_input_points, 20):
 
     error_linear = 0
     error_polynomial = 0
-    error_unknown = 0
+    error_unknown_sin = 0
+    error_unknown_cos = 0
 
     default_degree = 2
 
@@ -127,11 +139,15 @@ for i in range (0, number_of_input_points, 20):
                 error_polynomial = square_error(ys_test, y_hat)
                 list_degree[i] += error_polynomial
 
-            y_hat = calculate_line(xs_train, xs_test, ys_train, "unknown", default_degree)
-            error_unknown += square_error(ys_test, y_hat)
+            y_hat = calculate_line(xs_train, xs_test, ys_train, "sinus", default_degree)
+            error_unknown_sin += square_error(ys_test, y_hat)
+
+            y_hat = calculate_line(xs_train, xs_test, ys_train, "cosinus", default_degree)
+            error_unknown_cos += square_error(ys_test, y_hat)
 
     error_linear = error_linear.mean()
-    error_unknown = error_unknown.mean()
+    error_unknown_sin = error_unknown_sin.mean()
+    error_unknown_cos = error_unknown_cos.mean()
     for i in range(2, 7):
         list_degree[i].mean()
 
@@ -142,10 +158,11 @@ for i in range (0, number_of_input_points, 20):
 
     default_degree = index        
 
-    print("list degree: ", list_degree)
-    print("error unknown: ", error_unknown)
+    #print("list degree: ", list_degree)
+    print("error sinus: ", error_unknown_sin)
+    print("error cosinus: ", error_unknown_cos)
     print("error linear: ", error_linear)
-    function_type = find_function(error_linear, list_degree[index], error_unknown) 
+    function_type = find_function(error_linear, list_degree[index], error_unknown_sin, error_unknown_cos) 
 
     if (function_type == "polynomial"):
         print("Degree of the polynomial is: ", default_degree)   
