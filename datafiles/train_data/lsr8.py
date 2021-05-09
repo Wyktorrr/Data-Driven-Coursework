@@ -137,7 +137,7 @@ for i in range (0, number_of_input_points, 20):
         for i in range(2, 7):
             y_hat = calculate_line(xs_train, xs_test, ys_train, "polynomial", i)
             error_polynomial = square_error(ys_test, y_hat)
-            list_degree[i] += error_polynomial
+            list_degree[i] = error_polynomial
 
         """
         while(error_polynomial < initial_error_polynomial):
@@ -158,6 +158,7 @@ for i in range (0, number_of_input_points, 20):
 
     default_degree = index        
 
+    print("error poly: ", list_degree[index])
     print("list degree: ", list_degree)
     print("error unknown: ", error_unknown)
     print("error linear: ", error_linear)
