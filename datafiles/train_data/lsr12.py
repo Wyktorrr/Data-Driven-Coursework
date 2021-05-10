@@ -4,11 +4,37 @@ import pandas as pd
 import numpy as np
 import random
 from matplotlib import pyplot as plt
-from utilities import load_points_from_file as lpf
-from utilities import view_data_segments as vds    
+
+def load_points_from_file(filename):
+    """Loads 2d points from a csv called filename
+    Args:
+        filename : Path to .csv file
+    Returns:
+        (xs, ys) where xs and ys are a numpy array of the co-ordinates.
+    """
+    points = pd.read_csv(filename, header=None)
+    return points[0].values, points[1].values
+
+
+def view_data_segments(xs, ys):
+    """Visualises the input file with each segment plotted in a different colour.
+    Args:
+        xs : List/array-like of x co-ordinates.
+        ys : List/array-like of y co-ordinates.
+    Returns:
+        None
+    """
+    assert len(xs) == len(ys)
+    assert len(xs) % 20 == 0
+    len_data = len(xs)
+    num_segments = len_data // 20
+    colour = np.concatenate([[i] * 20 for i in range(num_segments)])
+    plt.set_cmap('Dark2')
+    plt.scatter(xs, ys, c=colour)
+    plt.show()
 
 command_arguments_list = sys.argv
-xs, ys = lpf(str(command_arguments_list[1]))
+xs, ys = load_points_from_file(str(command_arguments_list[1]))
 
 fig, ax = plt.subplots()
 ax.set_xlabel("$x_lambda$")
@@ -18,8 +44,8 @@ ax.scatter(xs, ys)
 number_of_input_points = len(xs) 
 number_of_segments_to_be_ploted = number_of_input_points // 20
 
-#Equations for linear regresion aiming to minimize the sum squared error
-#Determine the line of best fit for each set of data       
+#Equations for linear regresion aiming to minimize the sum squared error.
+#Determine the line of best fit for each set of data.       
 def plot_linear(X, Y):
     #Return the gradient and the vertical offset of a linear function
     ones = np.ones(X.shape)
@@ -64,7 +90,7 @@ def compute_polynomial(X, X_test, Y, degree):
     return result    
 
 #Based on the square error that has been computed, decide the type of the function.
-#The vertical distance from the data points to the regression line needs to be minimized.
+#The square error is the vertical distance from the data points to the regression line needs to be minimized.
 def find_function(linear_error, polynomial_error, unknown_error_sin, unknown_error_cos, unknown_error_exp):
     list_errors = [linear_error, polynomial_error, unknown_error_sin, unknown_error_cos]
     min_error = min(list_errors)
@@ -112,43 +138,42 @@ def plot_line(x, estimated_output):
 reconstruction_error = 0
 
 def shuffle(x, y):
-    #This function keeps an association between the input and output points and randomly permutates them
+    #This function keeps an association between the input and output points and randomly permutates them.
     sh = np.random.permutation(len(x))
     return x[sh], y[sh]  
 
 #In order to estimate the skill of the model, I acquired test and data points for k-fold validation. 
 #I considered 5 points of test and 15 of train, my choice being an implementation of a 5-fold cross validation.
-#The parameter j is increasing by 5 at each iteration for each portion of 20 points (each function).
-#As a consequence, for the first iteration, the first 5 points are test ponts and the last 15 train points, 
+#The parameter "step" is increasing by 5 at each iteration for each portion of 20 points (each function).
+#As a consequence, for the first iteration, the first 5 points are test points and the last 15 train points, 
 #for the second iteration, points starting from the fifth up the tenth will be testing and the others will be train points and so on.
 #Therefore, the error for each type of function and for each degree for the polynomial is computed and summed four times.
-#This is why I divide each error by four before deciding what function describes each chunk of data.   
-def test_train_data(X, Y, j):
-    xs_test = X[j:j+5]
-    ys_test = Y[j:j+5]
-    xs_train = X[j+5:20]
-    ys_train = Y[j+5:20]
-    xs_train = np.append(X[:j], xs_train)
-    ys_train = np.append(Y[:j], ys_train)
+#This is why I divide each error by four before deciding what function describes each chunk of data.
+  
+def test_train_data(X, Y, step):
+    xs_test = X[step:step+5]
+    ys_test = Y[step:step+5]
+    xs_train = X[step+5:20]
+    ys_train = Y[step+5:20]
+    xs_train = np.append(X[:step], xs_train)
+    ys_train = np.append(Y[:step], ys_train)
 
     return xs_train, xs_test, ys_train, ys_test 
-
-#I have also tested the model using 10 points as test and 10 points for train. A version of 10-fold cross validation.
+   
+#I have also tested the model using 10 points as test and 10 points for train (a version of 10-fold cross validation).
 #The values for the total reconstruction error were very similar. 
 #I fitted the line using 10-fold cross validation as well to check if a bias-variance tradeoff discussion would be appropiate.
 """
-def test_train_data(X, Y, j):
-    xs_test = X[j:j+10]
-    ys_test = Y[j:j+10]
-    xs_train = X[j+10:20]
-    ys_train = Y[j+10:20]
-    xs_train = np.append(X[:j], xs_train)
-    ys_train = np.append(Y[:j], ys_train)
+def test_train_data(X, Y, step):
+    xs_test = X[step:step+10]
+    ys_test = Y[step:step+10]
+    xs_train = X[step+10:20]
+    ys_train = Y[step+10:20]
+    xs_train = np.append(X[:step], xs_train)
+    ys_train = np.append(Y[:step], ys_train)
 
     return xs_train, xs_test, ys_train, ys_test 
-"""    
-
-
+ """   
 #Sum of offsets / residuals from the plotted curve that need to be minimized. These are minimized thanks to the least squares method. 
 def square_error(y, y_hat):
     return np.sum((y - y_hat) ** 2)
@@ -242,7 +267,8 @@ for i in range (0, number_of_input_points, 20):
         print() 
         print()
     
-    #Fit the line according to the function type
+    #Fit the line according to the function type.
+    #The fitted line is computed using the test points. 
     y_hat = calculate_line(chunk_xs, chunk_xs, chunk_ys, function_type, default_degree)
     reconstruction_error += square_error(chunk_ys, y_hat)
 
